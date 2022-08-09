@@ -19,19 +19,21 @@ contract LockContract is Context {
     event ERC20Released(address indexed token, uint256 amount);
 
     mapping(address => uint256) private _erc20Released;
-
-    address token;
-    uint32[]  _duration;
-    uint256[] _amounts;
-    uint256 private _released;
+    mapping(address => Employee) public _walletToEmployee;
 
     struct Employee {
-        string employee_name;
         address employee_address;
         uint tokens_to_receive;
         uint received_tokens;
         bool employment_status;
     }
+
+    address token;
+    Employee[] employees;
+    uint32[]  _duration;
+    uint256[] _amounts;
+    uint256 private _released;
+
 
 
     /**
@@ -45,6 +47,7 @@ contract LockContract is Context {
     ) {
         for (i=0; i<lockedTeamAddresses.length; i++){
             require(lockedTeamAddresses[i] != address(0), "Constructor: loacked team address is zero address");
+            employees.push({lockedTeamAddresses[i], })
         }
 
         token = tokenAdress;
