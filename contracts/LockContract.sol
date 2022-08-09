@@ -43,11 +43,12 @@ contract LockContract is Context {
         address tokenAdress,
         address[] memory lockedTeamAddresses,
         address[] memory duration,
-        uint256[] memory amounts
+        uint256[] memory amounts,
+        uint256 tokenAmount
     ) {
         for (i=0; i<lockedTeamAddresses.length; i++){
             require(lockedTeamAddresses[i] != address(0), "Constructor: loacked team address is zero address");
-            employees.push({lockedTeamAddresses[i], })
+            employees.push(Employee(lockedTeamAddresses[i], tokenAmount, 0, true));
         }
 
         token = tokenAdress;
