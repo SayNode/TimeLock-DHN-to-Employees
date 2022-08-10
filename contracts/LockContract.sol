@@ -49,8 +49,7 @@ contract LockContract is Context {
     uint256 _leftover;// tokens destined to new employess
     address _token;// token address
 
-
-
+    //Functions
     /**
      * @dev Set the beneficiary, start timestamp and locking durations and amounts.
      */
@@ -92,6 +91,7 @@ contract LockContract is Context {
         _;
     }
 
+
     /**
      * @dev Calculates the date of the next milestone (used to see if the milestone has passed or not)
      */
@@ -118,13 +118,6 @@ contract LockContract is Context {
         return _duration[currentMileStone];
     }
 
-
-    /**
-     * @dev Amount of _token already released
-     */
-    function released() public view virtual returns (uint256) {
-        return _erc20Released;
-    }
 
     /**
      * @dev Release the tokens according to milestone passage.
@@ -157,5 +150,19 @@ contract LockContract is Context {
         } else {
             return 0;
         }
+    }
+
+    /**
+     * @dev Adds a new employee. --TO DO--
+     */
+    function new_employee() public {
+
+    }
+
+    /**
+     * @dev Changes the employee status of an employee who is quitting. --TO DO--
+     */
+    function remove_employee() public {
+
     }
 }
