@@ -102,22 +102,17 @@ contract LockContract is Context {
         // get the time the lock period began for this employee
         uint64 lock_start = _walletToEmployee[_callerAddress].lock_start;
 
+    	// if it is the first milestone
         if(currentMileStone==0){
+            // ... the date is equal to the locking start date + the lock time (2 years)
             uint256 date = lock_start + _duration[0];
         }else{
+            /* 
+             ... otherwise the date is equal to the locking start date + the lock 
+             time (2 years) + a month for each milestone already retrived
+            */
             uint256 date = lock_start + _duration[0]+ (30 days)*currentMileStone;
         }
-        // return the date of the next milestone 
-        return _duration[currentMileStone];
-    }
-
-    /**
-     * @dev Getter for the end date of the current milestone.
-     */
-    function duration() public view virtual returns (uint256) {
-
-        // get the last milestone the employee received
-        uint16 currentMileStone = _walletToEmployee[_callerAddress].milestone;
 
         // return the date of the next milestone 
         return _duration[currentMileStone];
