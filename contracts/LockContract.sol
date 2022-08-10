@@ -72,7 +72,7 @@ contract LockContract is Context {
             _employees.push(employee);
 
             // map the new employee address to its struct
-            _walletToEmployee[msg.sender]=employee;
+            _walletToEmployee[lockedTeamAddresses[i]]=employee;
         }
 
         // establish token address
@@ -134,6 +134,7 @@ contract LockContract is Context {
 
     /**
      * @dev This returns the amount of tokens that can be withdrawn, as function of milestones passed.
+     * --TO DO: Change--
      */
     function _vestingSchedule( uint64 timestamp) internal virtual returns (uint256) {
         require(_mileStone< _amounts.length, "All milestone rewards have been claimed");
@@ -153,16 +154,23 @@ contract LockContract is Context {
     }
 
     /**
-     * @dev Adds a new employee. --TO DO--
+     * @dev Adds a new employee. --TO DO: See how the split enters--
      */
     function new_employee() public {
+            // create the new employee struct
+            Employee memory employee = Employee(msg.sender, 0, uint64(block.timestamp), true, false);
 
+            // push the new employee struct to the employees array
+            _employees.push(employee);
+
+            // map the new employee address to its struct
+            _walletToEmployee[msg.sender]=employee;
     }
 
     /**
-     * @dev Changes the employee status of an employee who is quitting. --TO DO--
+     * @dev Changes the employee status of an employee who is quitting. --TO DO: Make multi-sig--
      */
-    function remove_employee() public {
-
+    function remove_employee(address _employeeAddress) public {
+        _walletToEmployee[_employeeAddress].employment_status = false;
     }
 }
