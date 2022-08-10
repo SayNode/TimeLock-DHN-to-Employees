@@ -20,31 +20,34 @@ contract LockContract is Context {
     event ERC20Released(address indexed _token, uint256 amount);
 
     //Mappings
-    mapping(address => uint256) private _erc20Released;
     mapping(address => Employee) public _walletToEmployee;
 
     //Structs
     struct Employee {
-        address employee_address;//Probably can take it out
+        address employee_address;// probably can take it out
 
-        uint received_tokens;//Amount of tokens the employee has received
+        uint received_tokens;// amount of tokens the employee has received
 
-        uint64 lock_start;//Saves the date of the initial locking of the contract
+        uint64 lock_start;// saves the date of the initial locking of the contract
 
-        bool employment_status;//True-currently employed, False-no longer employed
+        uint16 milestone;// how many milestone rewards has the employee claimed
 
-        bool og_employee;//Saves gas by id'ing each employee as og/true (the original locked team) 
-                         //or new/false (new employes). This way we can just save the durations and amounts
-                         //in two single variables in the contract instead of saving them for each og employee
+        bool employment_status;// True-currently employed, False-no longer employed
+
+        bool og_employee;/* 
+                          saves gas by id'ing each employee as og/true (the original locked team) 
+                          or new/false (new employes). This way we can just save the durations and amounts
+                          in two single variables in the contract instead of saving them for each og employee
+                         */
     }
 
     //Variables
-    Employee[] _employees;
-    uint32[]  _duration;//Duration periods _duration[0]= 3 years, _duration[1]=3 years 1 month, etc
-    uint256 _released;
-    uint256 _lockedTeamTokens;
-    uint256 _mileStone;
-    address _token;
+    Employee[] _employees;// array with all the employee arrays
+    uint32[]  _duration;// duration periods _duration[0]= 3 years, _duration[1]=3 years 1 month, etc
+    uint256 _erc20Released;// total amount of released tokens
+    uint256 _OGTeamTokens;// tokens that belong to the OG team
+    uint256 _leftover;// tokens destined to new employess
+    address _token;// token address
 
 
 
@@ -89,12 +92,35 @@ contract LockContract is Context {
         _;
     }
 
+    /**
+     * @dev Calculates the date of the next milestone (used to see if the milestone has passed or not)
+     */
+    function get_date() public view virtual returns (uint256) {
+
+        // get the last milestone the employee received
+        uint16 currentMileStone = _walletToEmployee[_callerAddress].milestone;
+        // get the time the lock period began for this employee
+        uint64 lock_start = _walletToEmployee[_callerAddress].lock_start;
+
+        if(currentMileStone==0){
+            uint256 date = lock_start + _duration[0];
+        }else{
+            uint256 date = lock_start + _duration[0]+ (30 days)*currentMileStone;
+        }
+        // return the date of the next milestone 
+        return _duration[currentMileStone];
+    }
 
     /**
      * @dev Getter for the end date of the current milestone.
      */
     function duration() public view virtual returns (uint256) {
-        return _duration[_mileStone];
+
+        // get the last milestone the employee received
+        uint16 currentMileStone = _walletToEmployee[_callerAddress].milestone;
+
+        // return the date of the next milestone 
+        return _duration[currentMileStone];
     }
 
 
@@ -102,7 +128,7 @@ contract LockContract is Context {
      * @dev Amount of _token already released
      */
     function released() public view virtual returns (uint256) {
-        return _erc20Released[_token];
+        return _erc20Released;
     }
 
     /**
@@ -112,7 +138,7 @@ contract LockContract is Context {
      */
     function release() public virtual onlyEmployees(msg.sender){
         uint256 releasable = _vestingSchedule(uint64(block.timestamp));
-        _erc20Released[_token] += releasable;
+        _erc20Released += releasable;
         emit ERC20Released(_token, releasable);
         SafeERC20.safeTransfer(IERC20(_token), msg.sender, releasable);
     }
