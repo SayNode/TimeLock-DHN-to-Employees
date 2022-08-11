@@ -48,7 +48,7 @@ contract LockContract is Context {
 
     //Variables
     Employee[] _employees;// array with all the employee arrays
-    uint32[]  _duration;// duration periods _duration[0]= 3 years, _duration[1]=3 years 1 month, etc
+    uint256  _initLock;// initial lock period (2 years)
     uint256 _erc20Released;// total amount of released tokens
     uint256 numMilestones;// number of milestones (number of payments for each employee)
     uint256 _OGTeamTokens;// tokens that belong to the OG team
@@ -64,9 +64,9 @@ contract LockContract is Context {
         IERC20Votes wDHN,
         uint256 numMilestones,
         uint256 ogTeamTokens,
+        uint256 initLock,
         address tokenAdress,
         address[] memory lockedTeamAddresses,
-        address[] memory duration,
         uint256[] lockedTeamTokens
     ) {
 
@@ -85,8 +85,11 @@ contract LockContract is Context {
             // employee address can't be the zero address
             require(lockedTeamAddresses[i] != address(0), "Constructor: locked team address is zero address");
 
+            // get the amount of tokens that belong to each og employee
+            uint256 _amount = _OGTeamTokens/(_numOGEmployees);
+
             // create the new employee struct
-            Employee memory employee = Employee(lockedTeamAddresses[i], 0, uint64(block.timestamp), true, true);
+            Employee memory employee = Employee(lockedTeamAddresses[i], 0, _amount, uint64(block.timestamp), true, true);
 
             // push the new employee struct to the employees array
             _employees.push(employee);
@@ -94,11 +97,8 @@ contract LockContract is Context {
             // map the new employee address to its struct
             _walletToEmployee[lockedTeamAddresses[i]]=employee;
 
-            // get the amount of tokens that belong to each og employee
-            uint256 _amount = _OGTeamTokens/(_numOGEmployees);
-
             // delegate future token votes, to the employee
-            delegate_to_employee(msg.sender, _amount);
+            delegate_to_employee(lockedTeamAddresses[i], _amount);
         }
 
         // establish token address
@@ -106,7 +106,7 @@ contract LockContract is Context {
         _wDHN = wDHN;
 
         // establish the durations periods 
-        _duration = duration;
+        _initLock = initLock;
     }
 
 
@@ -134,17 +134,17 @@ contract LockContract is Context {
     	// if it is the first milestone
         if(currentMileStone==0){
             // ... the date is equal to the locking start date + the lock time (2 years)
-            uint256 date = lock_start + _duration[0];
+            uint256 date = lock_start + _initLock;
         }else{
             /* 
              ... otherwise the date is equal to the locking start date + the lock 
              time (2 years) + a month for each milestone already retrived
             */
-            uint256 date = lock_start + _duration[0]+ (30 days)*currentMileStone;
+            uint256 date = lock_start + _initLock+ (30 days)*currentMileStone;
         }
 
         // return the date of the next milestone 
-        return _duration[currentMileStone];
+        return date;
     }
 
 
