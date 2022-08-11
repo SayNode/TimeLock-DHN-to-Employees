@@ -59,11 +59,15 @@ contract LockContract is Context {
      */
     constructor(
         IwDHN wDHN,
+        uint256 ogTeamTokens,
         address tokenAdress,
         address[] memory lockedTeamAddresses,
         address[] memory duration,
         uint256[] lockedTeamTokens
     ) {
+        // get the number of tokens destined for the OG team
+        _OGTeamTokens = ogTeamTokens;
+
         // create an employee struct for each OG employee
         for (i=0; i<lockedTeamAddresses.length; i++){
 
@@ -79,8 +83,11 @@ contract LockContract is Context {
             // map the new employee address to its struct
             _walletToEmployee[lockedTeamAddresses[i]]=employee;
 
+            // get the amount of tokens that belong to each og employee
+            uint256 _amount = _OGTeamTokens/(60 * lockedTeamAddresses.length);
+            
             // delegate future token votes, to the employee
-            delegate_to_employee(msg.sender);
+            delegate_to_employee(msg.sender, _amount);
         }
 
         // establish token address
@@ -165,7 +172,7 @@ contract LockContract is Context {
     /**
      * @dev Adds a new employee. --TO DO: See how the split enters--
      */
-    function new_employee() public {
+    function new_employee(uint256 _amount) public {
             // create the new employee struct
             Employee memory employee = Employee(msg.sender, 0, uint64(block.timestamp), true, false);
 
@@ -174,6 +181,9 @@ contract LockContract is Context {
 
             // map the new employee address to its struct
             _walletToEmployee[msg.sender]=employee;
+
+            // delegate future token votes, to the employee
+            _wDHN.delegate(_employee, _amount);
     }
 
     /**
