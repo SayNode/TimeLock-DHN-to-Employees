@@ -121,6 +121,8 @@ contract LockContract is Context {
 
     /**
      * @dev Calculates the date of the next milestone (used to see if the milestone has passed or not)
+     * --TO DO: remove the if stament, possibly only needed line 136 
+     * (need to see if 30 days can be multiplied by zero)
      */
     function get_date(address _callerAddress) public view virtual returns (uint256) {
 
