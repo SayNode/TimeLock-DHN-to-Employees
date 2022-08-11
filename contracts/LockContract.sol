@@ -29,7 +29,9 @@ contract LockContract is Context {
     struct Employee {
         address employee_address;// probably can take it out
 
-        uint received_tokens;// amount of tokens the employee has received
+        uint256 received_tokens;// amount of tokens the employee has received
+
+        uint256 tokens_promised;// amount of tokens the employee is owed
 
         uint64 lock_start;// saves the date of the initial locking of the contract
 
@@ -48,7 +50,9 @@ contract LockContract is Context {
     Employee[] _employees;// array with all the employee arrays
     uint32[]  _duration;// duration periods _duration[0]= 3 years, _duration[1]=3 years 1 month, etc
     uint256 _erc20Released;// total amount of released tokens
+    uint256 numMilestones;// number of milestones (number of payments for each employee)
     uint256 _OGTeamTokens;// tokens that belong to the OG team
+    uint256 _numOGEmployees;// number of OG employess
     uint256 _leftover;// tokens destined to new employess
     address _token;// token address
 
@@ -58,12 +62,20 @@ contract LockContract is Context {
      */
     constructor(
         IERC20Votes wDHN,
+        uint256 numMilestones,
         uint256 ogTeamTokens,
         address tokenAdress,
         address[] memory lockedTeamAddresses,
         address[] memory duration,
         uint256[] lockedTeamTokens
     ) {
+
+        // number of milestones
+        _numMilestones = numMilestones;
+
+        // number of OG employees
+        _numOGEmployees = lockedTeamAddresses.length;
+
         // get the number of tokens destined for the OG team
         _OGTeamTokens = ogTeamTokens;
 
@@ -83,7 +95,7 @@ contract LockContract is Context {
             _walletToEmployee[lockedTeamAddresses[i]]=employee;
 
             // get the amount of tokens that belong to each og employee
-            uint256 _amount = _OGTeamTokens/(lockedTeamAddresses.length);
+            uint256 _amount = _OGTeamTokens/(_numOGEmployees);
 
             // delegate future token votes, to the employee
             delegate_to_employee(msg.sender, _amount);
@@ -110,7 +122,7 @@ contract LockContract is Context {
     /**
      * @dev Calculates the date of the next milestone (used to see if the milestone has passed or not)
      */
-    function get_date() public view virtual returns (uint256) {
+    function get_date(address _callerAddress) public view virtual returns (uint256) {
 
         // get the last milestone the employee received
         uint16 currentMileStone = _walletToEmployee[_callerAddress].milestone;
@@ -140,7 +152,7 @@ contract LockContract is Context {
      * Emits a {ERC20Released} event.
      */
     function release() public virtual onlyEmployees(msg.sender){
-        uint256 releasable = _vestingSchedule(uint64(block.timestamp));
+        uint256 releasable = _vestingSchedule(msg.sender, uint64(block.timestamp));
         _erc20Released += releasable;
         emit ERC20Released(_token, releasable);
         SafeERC20.safeTransfer(IERC20(_token), msg.sender, releasable);
@@ -149,17 +161,23 @@ contract LockContract is Context {
 
     /**
      * @dev This returns the amount of tokens that can be withdrawn, as function of milestones passed.
-     * --TO DO: Change--
      */
-    function _vestingSchedule( uint64 timestamp) internal virtual returns (uint256) {
-        require(_mileStone < _amounts.length, "All milestone rewards have been claimed");
-        //If the time is superior to the current milestone duration...
-        if (timestamp > duration()) {
-            //...we save the the amount we can withdraw in this milestone.
-            uint256 can_withdraw = _amounts[_mileStone];
+    function _vestingSchedule(address _callerAddress, uint64 timestamp) internal virtual returns (uint256) {
+        // get the last milestone the employee received
+        uint16 currentMileStone = _walletToEmployee[_callerAddress].milestone;
 
-            //Increment the milesonte (if it is not the last milestone)
-            _mileStone=_mileStone+1;
+        require(currentMileStone < _numMilestones, "All milestone rewards have been claimed");
+
+        //If the time is superior to the current milestone duration...
+        if (timestamp > get_date(_callerAddress)) {
+            //...we save the the amount we can withdraw in this milestone.
+
+            // get the amount of tokens that belong to each employee
+            uint256 can_withdraw = _walletToEmployee[_callerAddress].tokens_promised/(_numMilestones);
+
+            //Increment the milestone of a particular employee (if it is not the last milestone)
+            _walletToEmployee[_callerAddress].milestone = _walletToEmployee[_callerAddress].milestone+1;
+
             //Return the amount to withdraw this milestone
             return can_withdraw;
 
