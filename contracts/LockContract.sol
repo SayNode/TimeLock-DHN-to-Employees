@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/_token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -15,6 +16,9 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
  * have the same length and are iterated by the _milestone variable
  */
 contract LockContract is Context {
+
+    //Token
+    IwDHN public _wDHN;
 
     //Events
     event ERC20Released(address indexed _token, uint256 amount);
@@ -54,6 +58,7 @@ contract LockContract is Context {
      * @dev Set the beneficiary, start timestamp and locking durations and amounts.
      */
     constructor(
+        IwDHN wDHN,
         address tokenAdress,
         address[] memory lockedTeamAddresses,
         address[] memory duration,
@@ -73,10 +78,14 @@ contract LockContract is Context {
 
             // map the new employee address to its struct
             _walletToEmployee[lockedTeamAddresses[i]]=employee;
+
+            // delegate future token votes, to the employee
+            delegate_to_employee(msg.sender);
         }
 
         // establish token address
         _token = tokenAdress;
+        _wDHN = wDHN;
 
         // establish the durations periods 
         _duration = duration;
@@ -137,7 +146,7 @@ contract LockContract is Context {
      * --TO DO: Change--
      */
     function _vestingSchedule( uint64 timestamp) internal virtual returns (uint256) {
-        require(_mileStone< _amounts.length, "All milestone rewards have been claimed");
+        require(_mileStone < _amounts.length, "All milestone rewards have been claimed");
         //If the time is superior to the current milestone duration...
         if (timestamp > duration()) {
             //...we save the the amount we can withdraw in this milestone.
@@ -172,5 +181,12 @@ contract LockContract is Context {
      */
     function remove_employee(address _employeeAddress) public {
         _walletToEmployee[_employeeAddress].employment_status = false;
+    }
+
+    /**
+     * @dev Delegates the voting power to the
+     */
+    function delegate_to_employee(address _employee, uint256 _amount) internal {
+        _wDHN.delegate(_employee, _amount);
     }
 }
