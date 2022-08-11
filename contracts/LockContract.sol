@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/_token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -18,7 +17,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 contract LockContract is Context {
 
     //Token
-    IwDHN public _wDHN;
+    IERC20Votes public _wDHN;
 
     //Events
     event ERC20Released(address indexed _token, uint256 amount);
@@ -58,7 +57,7 @@ contract LockContract is Context {
      * @dev Set the beneficiary, start timestamp and locking durations and amounts.
      */
     constructor(
-        IwDHN wDHN,
+        IERC20Votes wDHN,
         uint256 ogTeamTokens,
         address tokenAdress,
         address[] memory lockedTeamAddresses,
@@ -84,8 +83,8 @@ contract LockContract is Context {
             _walletToEmployee[lockedTeamAddresses[i]]=employee;
 
             // get the amount of tokens that belong to each og employee
-            uint256 _amount = _OGTeamTokens/(60 * lockedTeamAddresses.length);
-            
+            uint256 _amount = _OGTeamTokens/(lockedTeamAddresses.length);
+
             // delegate future token votes, to the employee
             delegate_to_employee(msg.sender, _amount);
         }
@@ -102,8 +101,8 @@ contract LockContract is Context {
     /**
      * @dev Modifier that only allows current employess to interact with certain functions
      */
-    modifier onlyEmployees(address _callerAddress){
-        require(_walletToEmployee[_callerAddress].employment_status == true, 'This address is no a current employee');
+    modifier onlyEmployees(address callerAddress){
+        require(_walletToEmployee[callerAddress].employment_status == true, 'This address is no a current employee');
         _;
     }
 
@@ -172,7 +171,7 @@ contract LockContract is Context {
     /**
      * @dev Adds a new employee. --TO DO: See how the split enters--
      */
-    function new_employee(uint256 _amount) public {
+    function new_employee(uint256 amount) public {
             // create the new employee struct
             Employee memory employee = Employee(msg.sender, 0, uint64(block.timestamp), true, false);
 
@@ -183,20 +182,20 @@ contract LockContract is Context {
             _walletToEmployee[msg.sender]=employee;
 
             // delegate future token votes, to the employee
-            _wDHN.delegate(_employee, _amount);
+            _wDHN.delegate(_employee, amount);
     }
 
     /**
      * @dev Changes the employee status of an employee who is quitting. --TO DO: Make multi-sig--
      */
-    function remove_employee(address _employeeAddress) public {
-        _walletToEmployee[_employeeAddress].employment_status = false;
+    function remove_employee(address employeeAddress) public {
+        _walletToEmployee[employeeAddress].employment_status = false;
     }
 
     /**
      * @dev Delegates the voting power to the
      */
-    function delegate_to_employee(address _employee, uint256 _amount) internal {
-        _wDHN.delegate(_employee, _amount);
+    function delegate_to_employee(address employee, uint256 amount) internal {
+        _wDHN.delegate(employee, amount);
     }
 }
