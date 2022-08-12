@@ -2,7 +2,8 @@
 // OpenZeppelin Contracts (last updated v4.7.0) (finance/LockContract.sol)
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/_token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./IVotes.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -17,7 +18,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 contract LockContract is Context {
 
     //Token
-    IERC20Votes public _wDHN;
+    IVotes public _wDHN;
 
     //Events
     event ERC20Released(address indexed _token, uint256 amount);
@@ -50,7 +51,7 @@ contract LockContract is Context {
     Employee[] _employees;// array with all the employee arrays
     uint256  _initLock;// initial lock period (2 years)
     uint256 _erc20Released;// total amount of released tokens
-    uint256 numMilestones;// number of milestones (number of payments for each employee)
+    uint256 _numMilestones;// number of milestones (number of payments for each employee)
     uint256 _OGTeamTokens;// tokens that belong to the OG team
     uint256 _numOGEmployees;// number of OG employess
     uint256 _leftover;// tokens destined to new employess
@@ -61,15 +62,16 @@ contract LockContract is Context {
      * @dev Set the beneficiary, start timestamp and locking durations and amounts.
      */
     constructor(
-        IERC20Votes wDHN,
+        IVotes wDHN,
         uint256 numMilestones,
         uint256 ogTeamTokens,
         uint256 initLock,
         address tokenAdress,
         address[] memory lockedTeamAddresses,
-        uint256[] lockedTeamTokens
+        uint256[] memory lockedTeamTokens
     ) {
 
+        _wDHN=wDHN;
         // number of milestones
         _numMilestones = numMilestones;
 
@@ -80,7 +82,7 @@ contract LockContract is Context {
         _OGTeamTokens = ogTeamTokens;
 
         // create an employee struct for each OG employee
-        for (i=0; i<lockedTeamAddresses.length; i++){
+        for (uint i=0; i<lockedTeamAddresses.length; i++){
 
             // employee address can't be the zero address
             require(lockedTeamAddresses[i] != address(0), "Constructor: locked team address is zero address");
@@ -131,20 +133,13 @@ contract LockContract is Context {
         // get the time the lock period began for this employee
         uint64 lock_start = _walletToEmployee[_callerAddress].lock_start;
 
-    	// if it is the first milestone
-        if(currentMileStone==0){
-            // ... the date is equal to the locking start date + the lock time (2 years)
-            uint256 date = lock_start + _initLock;
-        }else{
-            /* 
-             ... otherwise the date is equal to the locking start date + the lock 
-             time (2 years) + a month for each milestone already retrived
-            */
-            uint256 date = lock_start + _initLock+ (30 days)*currentMileStone;
-        }
-
+        /* the date is equal to the locking start date + the lock 
+         time (2 years) + a month for each milestone already retrived
+        */
+        uint256 milestone_date = lock_start + _initLock+ (30 days)*currentMileStone;
+        
         // return the date of the next milestone 
-        return date;
+        return milestone_date;
     }
 
 
@@ -191,18 +186,18 @@ contract LockContract is Context {
     /**
      * @dev Adds a new employee. --TO DO: See how the split enters--
      */
-    function new_employee(uint256 amount, address new_employee) public {
+    function new_employee(uint256 amount, address new_employee_address) public {
             // create the new employee struct
-            Employee memory employee = Employee(new_employee, 0, amount, uint64(block.timestamp),0, true, false);
+            Employee memory employee = Employee(new_employee_address, 0, amount, uint64(block.timestamp),0, true, false);
 
             // push the new employee struct to the employees array
             _employees.push(employee);
 
             // map the new employee address to its struct
-            _walletToEmployee[new_employee]=employee;
+            _walletToEmployee[new_employee_address]=employee;
 
             // delegate future token votes, to the employee
-            _wDHN.delegate(new_employee, amount);
+            _wDHN.delegate(new_employee_address, amount);
     }
 
     /**

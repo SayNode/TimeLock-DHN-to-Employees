@@ -35,4 +35,5 @@ contract wDHN is ERC20, ERC20Permit, ERC20Votes, ERC20Wrapper {
     {
         super._burn(account, amount);
     }
+
 }

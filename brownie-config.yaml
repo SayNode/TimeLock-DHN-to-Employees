@@ -1,0 +1,18 @@
+dependencies:
+  - OpenZeppelin/openzeppelin-contracts-upgradeable@4.5.0
+  - OpenZeppelin/openzeppelin-contracts@4.5.0
+compiler:
+  solc:
+    remappings:
+      - '@openzeppelin/contracts-upgradeable=OpenZeppelin/openzeppelin-contracts-upgradeable@4.5.0/contracts'
+      - '@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.5.0'
+networks:
+  default: hardhat
+  kovan:
+    verify: True
+  rinkeby:
+    verify: True
+  hardhat:
+    verify: False
+wallets:
+  from_key: ${PRIVATE_KEY}

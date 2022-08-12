@@ -3,9 +3,9 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/draft-ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import "./IVotes.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
@@ -123,7 +123,7 @@ abstract contract ERC20Votes is IVotes, ERC20Permit {
     /**
      * @dev Delegate votes from the sender to `delegatee`.
      */
-    function delegate(address delegatee, uint256 amount) public virtual override {
+    function delegate(address delegatee, uint256 amount) public virtual {
         _delegate(_msgSender(), delegatee, amount);
     }
 
@@ -138,7 +138,7 @@ abstract contract ERC20Votes is IVotes, ERC20Permit {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public virtual override {
+    ) public virtual {
         require(block.timestamp <= expiry, "ERC20Votes: signature expired");
         address signer = ECDSA.recover(
             _hashTypedDataV4(keccak256(abi.encode(_DELEGATION_TYPEHASH, delegatee, nonce, expiry))),
