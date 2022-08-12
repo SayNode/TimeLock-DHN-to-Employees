@@ -205,6 +205,8 @@ contract LockContract is Context {
      */
     function remove_employee(address employeeAddress) public {
         _walletToEmployee[employeeAddress].employment_status = false;
+        //--TO DO--: give the employee his owed tokens
+        //--TO DO--: Remove his delegated votes
     }
 
     /**
