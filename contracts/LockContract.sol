@@ -100,7 +100,7 @@ contract LockContract is Context {
             _walletToEmployee[lockedTeamAddresses[i]]=employee;
 
             // delegate future token votes, to the employee
-            delegate_to_employee(lockedTeamAddresses[i], _amount);
+            delegate_votes(lockedTeamAddresses[i], _amount);
         }
 
         // establish token address
@@ -153,6 +153,7 @@ contract LockContract is Context {
         _erc20Released += releasable;
         emit ERC20Released(_token, releasable);
         SafeERC20.safeTransfer(IERC20(_token), msg.sender, releasable);
+        _walletToEmployee[msg.sender].received_tokens += releasable;
     }
 
 
@@ -204,15 +205,32 @@ contract LockContract is Context {
      * @dev Changes the employee status of an employee who is quitting. --TO DO: Make multi-sig--
      */
     function remove_employee(address employeeAddress) public {
+
+        //give the employee his owed tokens
+        uint256 releasable = _vestingSchedule(employeeAddress, uint64(block.timestamp));
+        _erc20Released += releasable;
+        emit ERC20Released(_token, releasable);
+        SafeERC20.safeTransfer(IERC20(_token), employeeAddress, releasable);
+
+        //get the votes that will have to be delegated back to the contract:
+                        // tokens_promised-tokens.received
+        uint256 votes_back_to_contract = _walletToEmployee[lockedTeamAddresses[i]].tokens_promised=_amount - 
+                                         _walletToEmployee[msg.sender].received_tokens;
+
+        //remove his delegated votes
+        delegate_votes(address(this), votes_back_to_contract);
+
+        // ex-employee is not owed anymore tokens
+        _walletToEmployee[lockedTeamAddresses[i]].tokens_promised=0;
+
+        //remove employee status
         _walletToEmployee[employeeAddress].employment_status = false;
-        //--TO DO--: give the employee his owed tokens
-        //--TO DO--: Remove his delegated votes
     }
 
     /**
      * @dev Delegates the voting power to the
      */
-    function delegate_to_employee(address employee, uint256 amount) internal {
+    function delegate_votes(address employee, uint256 amount) internal {
         _wDHN.delegate(employee, amount);
     }
 }
