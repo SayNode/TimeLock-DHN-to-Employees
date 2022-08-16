@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "./IVotes.sol";
+import "./IERC20VotesAltered.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
@@ -24,7 +24,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
  *
  * _Available since v4.2._
  */
-abstract contract ERC20Votes is IVotes, ERC20Permit {
+abstract contract ERC20Votes is IERC20VotesAltered, ERC20Permit {
     struct Checkpoint {
         uint32 fromBlock;
         uint224 votes;
@@ -123,14 +123,43 @@ abstract contract ERC20Votes is IVotes, ERC20Permit {
     /**
      * @dev Delegate votes from the sender to `delegatee`.
      */
-    function delegate(address delegatee, uint256 amount) public virtual {
-        _delegate(_msgSender(), delegatee, amount);
+    function delegate(address delegatee) public virtual override {
+        _delegate(_msgSender(), delegatee);
     }
 
     /**
      * @dev Delegates votes from signer to `delegatee`
      */
     function delegateBySig(
+        address delegatee,
+        uint256 nonce,
+        uint256 expiry,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public virtual override {
+        require(block.timestamp <= expiry, "ERC20Votes: signature expired");
+        address signer = ECDSA.recover(
+            _hashTypedDataV4(keccak256(abi.encode(_DELEGATION_TYPEHASH, delegatee, nonce, expiry))),
+            v,
+            r,
+            s
+        );
+        require(nonce == _useNonce(signer), "ERC20Votes: invalid nonce");
+        _delegate(signer, delegatee);
+    }
+
+    /**
+     * @dev Delegate votes from the sender to `delegatee` with amount.
+     */
+    function delegate_wAmount(address delegatee, uint256 amount) public virtual {
+        _delegate_wAmount(_msgSender(), delegatee, amount);
+    }
+
+    /**
+     * @dev Delegates votes from signer to `delegatee` with amount
+     */
+    function delegateBySig_wAmount(
         address delegatee,
         uint256 amount,
         uint256 nonce,
@@ -147,7 +176,7 @@ abstract contract ERC20Votes is IVotes, ERC20Permit {
             s
         );
         require(nonce == _useNonce(signer), "ERC20Votes: invalid nonce");
-        _delegate(signer, delegatee, amount);
+        _delegate_wAmount(signer, delegatee, amount);
     }
 
     /**
@@ -196,14 +225,29 @@ abstract contract ERC20Votes is IVotes, ERC20Permit {
      *
      * Emits events {DelegateChanged} and {DelegateVotesChanged}.
      */
-    function _delegate(address delegator, address delegatee, uint256 amount) internal virtual {
+    function _delegate(address delegator, address delegatee) internal virtual {
+        address currentDelegate = delegates(delegator);
+        uint256 delegatorBalance = balanceOf(delegator);
+        _delegates[delegator] = delegatee;
+
+        emit DelegateChanged(delegator, currentDelegate, delegatee);
+
+        _moveVotingPower(currentDelegate, delegatee, delegatorBalance);
+    }
+
+    /**
+     * @dev Change delegation for `delegator` to `delegatee` with amount.
+     *
+     * Emits events {DelegateChanged} and {DelegateVotesChanged}.
+     */
+    function _delegate_wAmount(address delegator, address delegatee, uint256 amount) internal virtual {
         address currentDelegate = delegates(delegator);
         uint256 delegatorBalance = amount;
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
 
-        _moveVotingPower(currentDelegate, delegatee, delegatorBalance);
+        _moveVotingPower(currentDelegate, delegatee, amount);
     }
 
     function _moveVotingPower(

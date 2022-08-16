@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./IVotes.sol";
+import "./IERC20VotesAltered.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 contract LockContract is Context {
 
     //Token
-    IVotes public _wDHN;
+    IERC20VotesAltered public _wDHN;
 
     //Events
     event ERC20Released(address indexed _token, uint256 amount);
@@ -62,7 +62,7 @@ contract LockContract is Context {
      * @dev Set the beneficiary, start timestamp and locking durations and amounts.
      */
     constructor(
-        IVotes wDHN,
+        IERC20VotesAltered wDHN,
         uint256 numMilestones,
         uint256 ogTeamTokens,
         uint256 initLock,
